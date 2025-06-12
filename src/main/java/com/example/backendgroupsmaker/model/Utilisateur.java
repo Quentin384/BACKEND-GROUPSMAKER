@@ -19,7 +19,7 @@ public class Utilisateur {
     @Column(nullable = false)
     private String motDePasse;
 
-    private String role = "USER"; // par défaut
+    private String role = "USER";
 
     public Utilisateur() {}
 
@@ -28,8 +28,6 @@ public class Utilisateur {
         this.motDePasse = motDePasse;
         this.role = role;
     }
-
-    // Getters et setters
 
     public Long getId() {
         return id;
