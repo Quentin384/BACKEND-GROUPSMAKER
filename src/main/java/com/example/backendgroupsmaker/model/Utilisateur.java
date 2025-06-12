@@ -26,9 +26,20 @@ public class Utilisateur {
     @Column(nullable = false)
     private String password;
 
-    // Si tu veux stocker la liste des listes créées par l'utilisateur
+    @Column(nullable = false)
+    private String role = "USER";
+
     @OneToMany(mappedBy = "utilisateur", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<Liste> listes;
+
+    // Constructeurs
+    public Utilisateur() {}
+
+    public Utilisateur(String username, String password, String role) {
+        this.username = username;
+        this.password = password;
+        this.role = role;
+    }
 
     // Getters et setters
 
@@ -54,6 +65,14 @@ public class Utilisateur {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 
     public Set<Liste> getListes() {

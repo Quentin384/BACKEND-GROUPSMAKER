@@ -33,17 +33,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
 
         final String authHeader = request.getHeader("Authorization");
-        final String jwt;
-        final String username;
+        String jwt = null;
+        String username = null;
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
+        // Vérification du header Authorization
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            jwt = authHeader.substring(7);
+            try {
+                username = jwtService.extractUsername(jwt);
+            } catch (Exception e) {
+                // Ici on peut logger l'erreur d'extraction du username (token invalide ou malformé)
+            }
         }
 
-        jwt = authHeader.substring(7);
-        username = jwtService.extractUsername(jwt);
-
+        // Si username extrait et pas déjà authentifié
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = utilisateurService.loadUserByUsername(username);
 

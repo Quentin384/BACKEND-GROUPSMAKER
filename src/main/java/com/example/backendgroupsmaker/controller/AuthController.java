@@ -1,6 +1,7 @@
 package com.example.backendgroupsmaker.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -29,16 +30,17 @@ public class AuthController {
     private JwtService jwtService;
 
     @PostMapping("/signup")
-    public String signup(@RequestBody AuthRequest request) {
+    public ResponseEntity<?> signup(@RequestBody AuthRequest request) {
         Utilisateur utilisateur = utilisateurService.inscription(request.getUsername(), request.getPassword());
-        return "Utilisateur créé : " + utilisateur.getUsername();
+        return ResponseEntity.ok("Utilisateur créé : " + utilisateur.getUsername());
     }
 
     @PostMapping("/login")
-    public String login(@RequestBody AuthRequest request) {
+    public ResponseEntity<?> login(@RequestBody AuthRequest request) {
         Authentication auth = authManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
         );
-        return jwtService.generateToken(request.getUsername());
+        String token = jwtService.generateToken(request.getUsername());
+        return ResponseEntity.ok(token);
     }
 }

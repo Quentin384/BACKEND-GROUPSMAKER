@@ -29,14 +29,17 @@ public class UtilisateurService implements UserDetailsService {
 
         return new org.springframework.security.core.userdetails.User(
             utilisateur.getUsername(),
-            utilisateur.getMotDePasse(),
-            List.of(new SimpleGrantedAuthority("ROLE_" + utilisateur.getRole()))
+            utilisateur.getPassword(), // correction ici, méthode getPassword() et non getMotDePasse()
+            List.of(new SimpleGrantedAuthority("ROLE_USER")) // rôle fixé à USER (à adapter si tu ajoutes un champ rôle dans Utilisateur)
         );
     }
 
     public Utilisateur inscription(String username, String motDePasse) {
         String encodedPassword = passwordEncoder.encode(motDePasse);
-        Utilisateur utilisateur = new Utilisateur(username, encodedPassword, "USER");
+        Utilisateur utilisateur = new Utilisateur();
+        utilisateur.setUsername(username);
+        utilisateur.setPassword(encodedPassword);
+        // Pas de champ role dans ta classe Utilisateur, donc on n’enregistre pas ça ici.
         return utilisateurRepository.save(utilisateur);
     }
 }

@@ -21,15 +21,17 @@ public class Personne {
     @Column(nullable = false)
     private String nom;
 
+    @Column
     private Integer age;
 
+    @Column(name = "ancien_dwwm")
     private Boolean ancienDWWM;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "liste_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "liste_id", nullable = false)
     private Liste liste;
 
-    // Getters et setters
+    // --- Getters et Setters ---
 
     public Long getId() {
         return id;

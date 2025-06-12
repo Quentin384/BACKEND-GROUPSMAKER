@@ -1,14 +1,26 @@
 package com.example.backendgroupsmaker.controller;
 
-import com.example.backendgroupsmaker.model.*;
-import com.example.backendgroupsmaker.repository.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.security.Principal;
 import java.util.Date;
 import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.example.backendgroupsmaker.model.Liste;
+import com.example.backendgroupsmaker.model.Personne;
+import com.example.backendgroupsmaker.model.Tirage;
+import com.example.backendgroupsmaker.model.Utilisateur;
+import com.example.backendgroupsmaker.repository.ListeRepository;
+import com.example.backendgroupsmaker.repository.PersonneRepository;
+import com.example.backendgroupsmaker.repository.TirageRepository;
+import com.example.backendgroupsmaker.repository.UtilisateurRepository;
 
 @RestController
 @RequestMapping("/api")
@@ -23,26 +35,29 @@ public class ApiController {
     @Autowired
     private TirageRepository tirageRepo;
 
-    // Récupérer toutes les listes de l'utilisateur connecté
+    @Autowired
+    private UtilisateurRepository utilisateurRepo;
+
     @GetMapping("/listes")
     public List<Liste> getListes(Principal principal) {
-        return listeRepo.findByProprietaireUsername(principal.getName());
+        Utilisateur user = utilisateurRepo.findByUsername(principal.getName())
+            .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+        return listeRepo.findByUtilisateurId(user.getId());
     }
 
-    // Créer une liste pour l'utilisateur
     @PostMapping("/listes")
     public ResponseEntity<Liste> createListe(Principal principal, @RequestBody Liste liste) {
-        liste.setProprietaire(new Utilisateur());
-        liste.getProprietaire().setUsername(principal.getName());
+        Utilisateur utilisateur = utilisateurRepo.findByUsername(principal.getName())
+            .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+        liste.setUtilisateur(utilisateur);
         Liste saved = listeRepo.save(liste);
         return ResponseEntity.ok(saved);
     }
 
-    // Ajouter une personne dans une liste (propriété de l'utilisateur)
     @PostMapping("/listes/{idListe}/personnes")
     public ResponseEntity<?> addPersonne(Principal principal, @PathVariable Long idListe, @RequestBody Personne p) {
         Liste liste = listeRepo.findById(idListe).orElse(null);
-        if (liste == null || !liste.getProprietaire().getUsername().equals(principal.getName())) {
+        if (liste == null || !liste.getUtilisateur().getUsername().equals(principal.getName())) {
             return ResponseEntity.status(403).build();
         }
         p.setListe(liste);
@@ -50,21 +65,19 @@ public class ApiController {
         return ResponseEntity.ok(p);
     }
 
-    // Récupérer les personnes d’une liste
     @GetMapping("/listes/{idListe}/personnes")
     public ResponseEntity<List<Personne>> getPersonnes(Principal principal, @PathVariable Long idListe) {
         Liste liste = listeRepo.findById(idListe).orElse(null);
-        if (liste == null || !liste.getProprietaire().getUsername().equals(principal.getName())) {
+        if (liste == null || !liste.getUtilisateur().getUsername().equals(principal.getName())) {
             return ResponseEntity.status(403).build();
         }
         return ResponseEntity.ok(personneRepo.findByListeId(idListe));
     }
 
-    // Ajouter un tirage à une liste
     @PostMapping("/listes/{idListe}/tirages")
     public ResponseEntity<?> addTirage(Principal principal, @PathVariable Long idListe, @RequestBody Tirage tirage) {
         Liste liste = listeRepo.findById(idListe).orElse(null);
-        if (liste == null || !liste.getProprietaire().getUsername().equals(principal.getName())) {
+        if (liste == null || !liste.getUtilisateur().getUsername().equals(principal.getName())) {
             return ResponseEntity.status(403).build();
         }
         tirage.setListe(liste);
@@ -73,11 +86,10 @@ public class ApiController {
         return ResponseEntity.ok(tirage);
     }
 
-    // Récupérer les tirages d’une liste
     @GetMapping("/listes/{idListe}/tirages")
     public ResponseEntity<List<Tirage>> getTirages(Principal principal, @PathVariable Long idListe) {
         Liste liste = listeRepo.findById(idListe).orElse(null);
-        if (liste == null || !liste.getProprietaire().getUsername().equals(principal.getName())) {
+        if (liste == null || !liste.getUtilisateur().getUsername().equals(principal.getName())) {
             return ResponseEntity.status(403).build();
         }
         return ResponseEntity.ok(tirageRepo.findByListeId(idListe));

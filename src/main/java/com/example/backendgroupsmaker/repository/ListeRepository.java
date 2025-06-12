@@ -9,4 +9,7 @@ import com.example.backendgroupsmaker.model.Liste;
 public interface ListeRepository extends JpaRepository<Liste, Long> {
     List<Liste> findByUtilisateurId(Long utilisateurId);
     Liste findByNomAndUtilisateurId(String nom, Long utilisateurId);
+
+    // ➕ à ajouter
+    List<Liste> findByUtilisateurUsername(String username);
 }
