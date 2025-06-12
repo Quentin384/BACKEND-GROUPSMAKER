@@ -25,15 +25,23 @@ public class Liste {
     @Column(nullable = false)
     private String nom;
 
+    // Nombre de tirages (groupes) réalisés dans cette liste
     @Column(nullable = false)
     private int tirages = 0;
 
+    // Association vers l'utilisateur propriétaire de la liste (relation ManyToOne)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "utilisateur_id")
     private Utilisateur utilisateur;
 
+    // Liste des personnes associées à cette liste (relation OneToMany)
     @OneToMany(mappedBy = "liste", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Personne> personnes;
+
+    // Nouveau champ indiquant si la liste est partagée ou non
+    // false par défaut
+    @Column(nullable = false)
+    private boolean partagee = false;
 
     // Getters et setters
 
@@ -75,5 +83,13 @@ public class Liste {
 
     public void setPersonnes(List<Personne> personnes) {
         this.personnes = personnes;
+    }
+
+    public boolean isPartagee() {
+        return partagee;
+    }
+
+    public void setPartagee(boolean partagee) {
+        this.partagee = partagee;
     }
 }

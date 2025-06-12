@@ -1,104 +1,89 @@
 package com.example.backendgroupsmaker.controller;
 
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import com.example.backendgroupsmaker.model.*;
-import com.example.backendgroupsmaker.repository.*;
+import com.example.backendgroupsmaker.service.AdminService;
 
 @RestController
 @RequestMapping("/api/admin")
 public class AdminController {
 
     @Autowired
-    private UtilisateurRepository utilisateurRepository;
+    private AdminService adminService;
 
-    @Autowired
-    private ListeRepository listeRepository;
+    /**
+     * Endpoint GET qui retourne toutes les statistiques d’administration demandées.
+     * Accessible uniquement aux utilisateurs avec le rôle ADMIN.
+     */
+    @GetMapping("/statistiques")
+    public StatistiquesDTO getStatistiques() {
+        StatistiquesDTO dto = new StatistiquesDTO();
 
-    @Autowired
-    private PersonneRepository personneRepository;
+        dto.setNombreListesParUtilisateur(adminService.getNombreListesParUtilisateur());
+        dto.setMoyennePersonnesParListe(adminService.getMoyennePersonnesParListe());
+        dto.setMoyenneGroupesParListe(adminService.getMoyenneGroupesParListe());
+        dto.setNombreListesPartagees(adminService.getNombreListesPartagees());
+        dto.setMoyenneUtilisateursParListePartagee(adminService.getMoyenneUtilisateursParListePartagee());
 
-    @Autowired
-    private TirageRepository tirageRepository;
-
-    // 1. Voir tous les utilisateurs
-    @GetMapping("/utilisateurs")
-    public List<Utilisateur> getAllUtilisateurs() {
-        return utilisateurRepository.findAll();
+        return dto;
     }
 
-    // 2. Supprimer un utilisateur
-    @DeleteMapping("/utilisateurs/{id}")
-    public ResponseEntity<?> deleteUtilisateur(@PathVariable Long id) {
-        if (!utilisateurRepository.existsById(id)) {
-            return ResponseEntity.notFound().build();
+    /**
+     * DTO (Data Transfer Object) pour structurer la réponse JSON des statistiques.
+     */
+    public static class StatistiquesDTO {
+
+        private Map<String, Long> nombreListesParUtilisateur;
+        private double moyennePersonnesParListe;
+        private double moyenneGroupesParListe;
+        private long nombreListesPartagees;
+        private double moyenneUtilisateursParListePartagee;
+
+        // Getters et setters
+
+        public Map<String, Long> getNombreListesParUtilisateur() {
+            return nombreListesParUtilisateur;
         }
-        utilisateurRepository.deleteById(id);
-        return ResponseEntity.ok().build();
+
+        public void setNombreListesParUtilisateur(Map<String, Long> nombreListesParUtilisateur) {
+            this.nombreListesParUtilisateur = nombreListesParUtilisateur;
+        }
+
+        public double getMoyennePersonnesParListe() {
+            return moyennePersonnesParListe;
+        }
+
+        public void setMoyennePersonnesParListe(double moyennePersonnesParListe) {
+            this.moyennePersonnesParListe = moyennePersonnesParListe;
+        }
+
+        public double getMoyenneGroupesParListe() {
+            return moyenneGroupesParListe;
+        }
+
+        public void setMoyenneGroupesParListe(double moyenneGroupesParListe) {
+            this.moyenneGroupesParListe = moyenneGroupesParListe;
+        }
+
+        public long getNombreListesPartagees() {
+            return nombreListesPartagees;
+        }
+
+        public void setNombreListesPartagees(long nombreListesPartagees) {
+            this.nombreListesPartagees = nombreListesPartagees;
+        }
+
+        public double getMoyenneUtilisateursParListePartagee() {
+            return moyenneUtilisateursParListePartagee;
+        }
+
+        public void setMoyenneUtilisateursParListePartagee(double moyenneUtilisateursParListePartagee) {
+            this.moyenneUtilisateursParListePartagee = moyenneUtilisateursParListePartagee;
+        }
     }
-
-    // 3. Statistiques générales
-    @GetMapping("/stats")
-    public Map<String, Object> getStats() {
-        long nbUtilisateurs = utilisateurRepository.count();
-
-        // Nombre de listes par utilisateur
-        Map<Long, Long> listesParUtilisateur = listeRepository.findAll()
-            .stream()
-            .collect(Collectors.groupingBy(l -> l.getUtilisateur().getId(), Collectors.counting()));
-
-        double avgListesParUtilisateur = listesParUtilisateur.values().stream()
-            .mapToLong(Long::longValue)
-            .average()
-            .orElse(0);
-
-        // Nombre de personnes par liste en moyenne
-        Map<Long, Long> personnesParListe = personneRepository.findAll()
-            .stream()
-            .collect(Collectors.groupingBy(p -> p.getListe().getId(), Collectors.counting()));
-
-        double avgPersonnesParListe = personnesParListe.values().stream()
-            .mapToLong(Long::longValue)
-            .average()
-            .orElse(0);
-
-        // Nombre de groupes (tirages) par liste en moyenne
-        Map<Long, Long> tiragesParListe = tirageRepository.findAll()
-            .stream()
-            .collect(Collectors.groupingBy(t -> t.getListe().getId(), Collectors.counting()));
-
-        double avgTiragesParListe = tiragesParListe.values().stream()
-            .mapToLong(Long::longValue)
-            .average()
-            .orElse(0);
-
-        // TODO: Pour listes partagées et utilisateurs associés, besoin d’ajouter gestion des listes partagées
-        // Hypothèse : ta classe Liste a un booléen 'partagee' et une relation vers plusieurs utilisateurs
-
-        long nbListesPartagees = listeRepository.countByPartageeTrue();
-
-        // Moyenne des utilisateurs associés aux listes partagées
-        // Pour cela, une méthode à créer dans le repo, ou calcul direct
-        double avgUtilisateursParListePartagee = 0; // à implémenter selon ta structure
-
-        return Map.of(
-            "nombreUtilisateurs", nbUtilisateurs,
-            "moyenneListesParUtilisateur", avgListesParUtilisateur,
-            "moyennePersonnesParListe", avgPersonnesParListe,
-            "moyenneGroupesParListe", avgTiragesParListe,
-            "nombreListesPartagees", nbListesPartagees,
-            "moyenneUtilisateursParListePartagee", avgUtilisateursParListePartagee
-        );
-    }
-
-    // 4. Modifier réglages généraux du site
-    // Pour cela, il faut définir une entité "Settings" ou gérer via fichier config modifiable
-
-    // Exemple simple avec une entité Settings (clé-valeur)
 }
