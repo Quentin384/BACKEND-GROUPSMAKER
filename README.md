@@ -1,4 +1,3 @@
-
 # 🚀 BACKEND-GROUPSMAKER
 
 > Backend Java Spring Boot pour l’application GroupsMaker — gestion sécurisée de listes, personnes et tirages aléatoires.  
@@ -124,17 +123,13 @@ L’API est disponible sur : `http://localhost:8080/api`
 1. **Inscription**
 
 ```bash
-curl -X POST http://localhost:8080/api/auth/signup \
--H "Content-Type: application/json" \
--d '{"username":"testuser","password":"testpwd"}'
+curl -X POST http://localhost:8080/api/auth/signup -H "Content-Type: application/json" -d '{"username":"testuser","password":"testpwd"}'
 ```
 
 2. **Connexion & récupération du token**
 
 ```bash
-curl -X POST http://localhost:8080/api/auth/login \
--H "Content-Type: application/json" \
--d '{"username":"testuser","password":"testpwd"}'
+curl -X POST http://localhost:8080/api/auth/login -H "Content-Type: application/json" -d '{"username":"testuser","password":"testpwd"}'
 ```
 
 Réponse : `eyJhbGciOiJIUzI1NiIsInR5cCI6...` (token JWT)
@@ -142,8 +137,7 @@ Réponse : `eyJhbGciOiJIUzI1NiIsInR5cCI6...` (token JWT)
 3. **Appels sécurisés avec token**
 
 ```bash
-curl -X GET http://localhost:8080/api/listes \
--H "Authorization: Bearer <token>"
+curl -X GET http://localhost:8080/api/listes -H "Authorization: Bearer <token>"
 ```
 
 ---
@@ -153,26 +147,19 @@ curl -X GET http://localhost:8080/api/listes \
 - Créer une liste (avec JWT)
 
 ```bash
-curl -X POST http://localhost:8080/api/listes \
--H "Content-Type: application/json" \
--H "Authorization: Bearer <token>" \
--d '{"nom":"Ma liste importante"}'
+curl -X POST http://localhost:8080/api/listes -H "Content-Type: application/json" -H "Authorization: Bearer <token>" -d '{"nom":"Ma liste importante"}'
 ```
 
 - Ajouter une personne à une liste
 
 ```bash
-curl -X POST http://localhost:8080/api/listes/1/personnes \
--H "Content-Type: application/json" \
--H "Authorization: Bearer <token>" \
--d '{"nom":"Dupont","prenom":"Jean"}'
+curl -X POST http://localhost:8080/api/listes/1/personnes -H "Content-Type: application/json" -H "Authorization: Bearer <token>" -d '{"nom":"Dupont","prenom":"Jean"}'
 ```
 
 - Obtenir tirages d’une liste
 
 ```bash
-curl -X GET http://localhost:8080/api/listes/1/tirages \
--H "Authorization: Bearer <token>"
+curl -X GET http://localhost:8080/api/listes/1/tirages -H "Authorization: Bearer <token>"
 ```
 
 ---
@@ -222,23 +209,18 @@ Fork, crée une branche, fais tes modifications, puis ouvre une PR.
 
 ## 📌 Auteur
 
-👨‍💻 Quentin – Étudiant développeur Fullstack Java / Angular
-🎓 Projet réalisé en solo dans le cadre de la formation Simplon, promotion 2025
+👨‍💻 Quentin – Étudiant développeur Fullstack Java / Angular  
+🎓 Projet réalisé en solo dans le cadre de la formation Simplon, promotion 2025  
 🔧 Rôle principal et responsabilités :
 
-Conception et développement complet du backend et du frontend
+- Conception et développement complet du backend et du frontend  
+- Implémentation de la logique métier avancée (gestion des groupes, critères personnalisés, tirages)  
+- Architecture sécurisée avec JWT, Spring Security et bonnes pratiques REST  
+- Développement frontend réactif et responsive avec Angular 19  
+- Intégration continue, tests unitaires et gestion des versions  
+- Documentation complète et maintien du projet sur GitHub
 
-Implémentation de la logique métier avancée (gestion des groupes, critères personnalisés, tirages)
-
-Architecture sécurisée avec JWT, Spring Security et bonnes pratiques REST
-
-Développement frontend réactif et responsive avec Angular 19
-
-Intégration continue, tests unitaires et gestion des versions
-
-Documentation complète et maintien du projet sur GitHub
-
-📅 Période du projet : Mai 2025
+📅 Période du projet : Mai 2025  
 🌐 Contact & suivi : Profil GitHub | LinkedIn 
 
 ---
