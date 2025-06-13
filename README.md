@@ -1,174 +1,252 @@
-# 🛠 BACKEND-GROUPSMAKER
 
-API backend développée en Java Spring Boot pour la gestion sécurisée de listes, personnes, tirages et utilisateurs dans le cadre du projet **GroupsMaker**.
+# 🚀 BACKEND-GROUPSMAKER
+
+> Backend Java Spring Boot pour l’application GroupsMaker — gestion sécurisée de listes, personnes et tirages aléatoires.  
+> Authentification JWT, rôles utilisateur, et API REST protégée.
 
 ---
 
 ## 📋 Table des matières
 
-- [Technologies](#technologies)  
-- [Installation](#installation)  
-- [Configuration](#configuration)  
-- [Démarrage](#démarrage)  
-- [Architecture et logique métier](#architecture-et-logique-métier)  
-- [Endpoints détaillés](#endpoints-détaillés)  
-- [Sécurité et authentification](#sécurité-et-authentification)  
-- [Exemples d’utilisation avec JWT](#exemples-dutilisation-avec-jwt)  
-- [Tests avec Postman](#tests-avec-postman)  
-- [Contribuer](#contribuer)  
-- [Licence](#licence)
+- [Présentation](#-présentation)
+- [Fonctionnalités](#-fonctionnalités)
+- [Architecture & Sécurité](#-architecture--sécurité)
+- [Installation & Setup](#-installation--setup)
+- [Configuration](#-configuration)
+- [Utilisation & Tests](#-utilisation--tests)
+- [Exemples de requêtes cURL](#-exemples-de-requêtes-curl)
+- [Bonnes pratiques](#-bonnes-pratiques)
+- [FAQ](#-faq)
+- [Roadmap](#-roadmap)
+- [Contribuer](#-contribuer)
+- [Auteur](#-auteur)
+- [Licence](#-licence)
 
 ---
 
-## 🔧 Technologies utilisées
+## 📌 Présentation
 
-- Java 17  
-- Spring Boot  
-- Spring Data JPA (PostgreSQL)  
-- Spring Security (JWT, BCrypt)  
-- Maven (build)  
+GroupsMaker Backend est une API REST sécurisée développée avec Spring Boot.  
+Elle permet la gestion de listes personnalisées, d’entités personnes et de tirages aléatoires.  
+
+L’API s’appuie sur un système d’authentification JWT et contrôle l’accès selon les rôles utilisateur (ex: USER, ADMIN).  
 
 ---
 
-## ⚙ Installation
+## ✨ Fonctionnalités
 
-1. Clone le repository backend :
+- 🔐 Authentification sécurisée avec JWT  
+- 👤 Gestion des utilisateurs avec rôles  
+- 📋 CRUD listes, personnes et tirages  
+- 🔄 Tirage aléatoire lié à une liste  
+- 🚫 Protection des routes par rôles  
+- 🗃️ Stockage avec PostgreSQL via JPA/Hibernate  
+- 🔧 Configuration facile et extensible  
+
+---
+
+## 🏗 Architecture & Sécurité
+
+### Flux d’authentification JWT
+
+```mermaid
+graph TD
+    A[Client] -->|Login (username + pwd)| B[AuthController]
+    B -->|Validate creds| C[UtilisateurService]
+    C -->|LoadUserByUsername| D[UtilisateurRepository]
+    B -->|Generate JWT| E[JwtService]
+    E -->|Token JWT| A
+    A -->|Requêtes API + Header Authorization: Bearer <token>| F[JwtAuthenticationFilter]
+    F -->|Validate token| G[SecurityContext]
+    G -->|Accès contrôlé| H[API protégée]
+```
+
+### Sécurité HTTP
+
+- Tous les endpoints `/api/auth/**` sont publics (inscription, connexion).  
+- Les autres endpoints exigent un JWT valide.  
+- Le filtre `JwtAuthenticationFilter` extrait et valide le token à chaque requête.  
+- Les accès sont restreints selon les rôles (`USER`, `ADMIN`).  
+
+---
+
+## 💻 Installation & Setup
+
+### Prérequis
+
+- Java 17+  
+- Maven  
+- PostgreSQL (configuré et lancé)  
+
+### Cloner le dépôt
 
 ```bash
 git clone https://github.com/Quentin384/BACKEND-GROUPSMAKER.git
 cd BACKEND-GROUPSMAKER
 ```
 
-2. Configure ta base PostgreSQL et mets à jour le fichier `src/main/resources/application.properties` avec tes infos (URL, utilisateur, mot de passe).
+### Configuration de la base
 
-3. (Optionnel) Pour un développement rapide, active la création automatique des tables :
+Configurer `application.properties` (ou `application.yml`) pour PostgreSQL :
 
 ```properties
-spring.jpa.hibernate.ddl-auto=create
+spring.datasource.url=jdbc:postgresql://localhost:5432/groupsmakerdb
+spring.datasource.username=tonuser
+spring.datasource.password=tonpassword
+
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
 ```
 
----
-
-## ▶️ Démarrage de l’application
+### Compilation & lancement
 
 ```bash
-./mvnw spring-boot:run
+mvn clean install
+mvn spring-boot:run
 ```
 
-L’API sera disponible sur `http://localhost:8080`.
+L’API est disponible sur : `http://localhost:8080/api`
 
 ---
 
-## 🧱 Architecture et logique métier
+## ⚙️ Configuration
 
-- **Utilisateur** : chaque utilisateur possède un nom d’utilisateur unique et un mot de passe encodé.  
-- **Liste** : chaque liste appartient à un utilisateur unique.  
-- **Personne** : entité liée à une liste, représentant une personne dans cette liste.  
-- **Tirage** : opération liée à une liste, enregistrée avec une date.  
-
-**Contrôle d’accès** :  
-- Un utilisateur ne peut accéder qu’aux listes dont il est propriétaire.  
-- Toute modification ou ajout dans une liste vérifie que l’utilisateur connecté est bien propriétaire, sinon la requête retourne un `403 Forbidden`.
+- JWT secret et durée de validité sont configurables dans `application.properties`.  
+- Gestion des rôles simple (USER par défaut, ADMIN pour routes protégées).  
+- Passwords encodés avec BCrypt (meilleure pratique).  
+- Filtrage stateless, sans session côté serveur.  
 
 ---
 
-## 🔗 Endpoints détaillés
+## 🧪 Utilisation & Tests
 
-### Authentification
-
-| Route               | Méthode | Description                     | Auth requise |
-|---------------------|---------|--------------------------------|--------------|
-| `/api/auth/signup`  | POST    | Inscription d’un utilisateur    | Non          |
-| `/api/auth/login`   | POST    | Connexion et récupération JWT   | Non          |
-
-### Gestion des listes, personnes, tirages (sécurisé)
-
-| Route                                        | Méthode | Description                                             | Autorisation                  |
-|----------------------------------------------|---------|---------------------------------------------------------|-------------------------------|
-| `/api/listes`                                | GET     | Récupère les listes associées à l’utilisateur connecté | `ROLE_USER` (JWT obligatoire) |
-| `/api/listes`                                | POST    | Crée une nouvelle liste liée à l’utilisateur connecté  | `ROLE_USER`                   |
-| `/api/listes/{idListe}/personnes`            | GET     | Récupère les personnes d’une liste donnée               | `ROLE_USER`, propriétaire     |
-| `/api/listes/{idListe}/personnes`            | POST    | Ajoute une personne à une liste                          | `ROLE_USER`, propriétaire     |
-| `/api/listes/{idListe}/tirages`               | GET     | Récupère les tirages d’une liste                         | `ROLE_USER`, propriétaire     |
-| `/api/listes/{idListe}/tirages`               | POST    | Ajoute un tirage avec date automatique                   | `ROLE_USER`, propriétaire     |
-
-> Toute tentative d’accès à une liste non possédée par l’utilisateur renvoie un HTTP 403.
-
----
-
-## 🔐 Sécurité et authentification
-
-- Mot de passe stocké encodé via BCrypt.  
-- Utilisation de JWT (JSON Web Token) pour les sessions stateless.  
-- Configuration Spring Security avec filtre JWT pour protéger les endpoints.  
-- Seules les routes `/api/auth/**` sont accessibles sans authentification.  
-- Tous les autres endpoints exigent un JWT valide et un rôle `ROLE_USER`.  
-
-Le token JWT est transmis dans l’en-tête HTTP `Authorization` sous la forme :
-
-```
-Authorization: Bearer <token>
-```
-
----
-
-## 📖 Exemples d’utilisation
-
-### Inscription
+1. **Inscription**
 
 ```bash
-curl -X POST http://localhost:8080/api/auth/signup -H "Content-Type: application/json" -d '{"username":"quentin","password":"monMotDePasse"}'
+curl -X POST http://localhost:8080/api/auth/signup \
+-H "Content-Type: application/json" \
+-d '{"username":"testuser","password":"testpwd"}'
 ```
 
-### Connexion (login)
+2. **Connexion & récupération du token**
 
 ```bash
-curl -X POST http://localhost:8080/api/auth/login -H "Content-Type: application/json" -d '{"username":"quentin","password":"monMotDePasse"}'
+curl -X POST http://localhost:8080/api/auth/login \
+-H "Content-Type: application/json" \
+-d '{"username":"testuser","password":"testpwd"}'
 ```
 
-> Réponse : JWT à utiliser dans les requêtes suivantes.
+Réponse : `eyJhbGciOiJIUzI1NiIsInR5cCI6...` (token JWT)
 
----
-
-### Récupérer les listes de l’utilisateur (token JWT obligatoire)
+3. **Appels sécurisés avec token**
 
 ```bash
-curl -H "Authorization: Bearer <TON_TOKEN>" http://localhost:8080/api/listes
+curl -X GET http://localhost:8080/api/listes \
+-H "Authorization: Bearer <token>"
 ```
 
 ---
 
-### Créer une liste
+## 🔥 Exemples de requêtes cURL
+
+- Créer une liste (avec JWT)
 
 ```bash
-curl -X POST http://localhost:8080/api/listes -H "Authorization: Bearer <TON_TOKEN>" -H "Content-Type: application/json" -d '{"nom":"Liste A"}'
+curl -X POST http://localhost:8080/api/listes \
+-H "Content-Type: application/json" \
+-H "Authorization: Bearer <token>" \
+-d '{"nom":"Ma liste importante"}'
 ```
 
----
-
-### Ajouter une personne à une liste
+- Ajouter une personne à une liste
 
 ```bash
-curl -X POST http://localhost:8080/api/listes/1/personnes -H "Authorization: Bearer <TON_TOKEN>" -H "Content-Type: application/json" -d '{"nom":"Alice", "prenom":"Dupont"}'
+curl -X POST http://localhost:8080/api/listes/1/personnes \
+-H "Content-Type: application/json" \
+-H "Authorization: Bearer <token>" \
+-d '{"nom":"Dupont","prenom":"Jean"}'
+```
+
+- Obtenir tirages d’une liste
+
+```bash
+curl -X GET http://localhost:8080/api/listes/1/tirages \
+-H "Authorization: Bearer <token>"
 ```
 
 ---
 
-## 🧪 Tests avec Postman
+## ✅ Bonnes pratiques
 
-- Crée une collection et importe les endpoints.  
-- Configure le token JWT dans la section Authorization (Bearer Token) pour les routes sécurisées.  
-- Teste les réponses 401 sans token, 200 avec token valide.  
-- Vérifie que tu ne peux accéder qu’aux listes dont tu es propriétaire (403 sinon).  
-
----
-
-## 🤝 Contribution
-
-Contributions, améliorations et corrections de bugs bienvenues. Forke le projet, fais tes modifications puis crée une pull request.
+- Toujours utiliser HTTPS en production  
+- Ne jamais exposer les secrets JWT publiquement  
+- Stocker les mots de passe uniquement encodés (BCrypt)  
+- Protéger les routes sensibles avec des rôles  
+- Valider côté backend toutes les données reçues  
+- Tester les tokens et la gestion des erreurs  
 
 ---
 
-## 📄 Licence
+## ❓ FAQ
 
-Ce projet est sous licence MIT. Voir [LICENSE](./LICENSE).
+**Q : Comment obtenir un token JWT ?**  
+R : Via l’endpoint `/api/auth/login` avec un couple username/mot de passe valide.
+
+**Q : Que faire si le token expire ?**  
+R : Reconnecte-toi via `/api/auth/login` pour obtenir un nouveau token.
+
+**Q : Puis-je changer les rôles des utilisateurs ?**  
+R : Oui, via la base de données et en adaptant les rôles dans `SecurityConfig`.
+
+---
+
+## 🚀 Roadmap
+
+- [x] Authentification JWT  
+- [x] Gestion utilisateurs et rôles  
+- [x] CRUD listes, personnes, tirages  
+- [ ] Ajout pagination et filtrage  
+- [ ] API Documentation Swagger  
+- [ ] Tests unitaires et d’intégration  
+- [ ] Notifications en temps réel  
+
+---
+
+## 🤝 Contribuer
+
+Contributions, corrections, suggestions bienvenues !  
+Fork, crée une branche, fais tes modifications, puis ouvre une PR.
+
+---
+
+## 📌 Auteur
+
+👨‍💻 Quentin – Étudiant développeur Fullstack Java / Angular
+🎓 Projet réalisé en solo dans le cadre de la formation Simplon, promotion 2025
+🔧 Rôle principal et responsabilités :
+
+Conception et développement complet du backend et du frontend
+
+Implémentation de la logique métier avancée (gestion des groupes, critères personnalisés, tirages)
+
+Architecture sécurisée avec JWT, Spring Security et bonnes pratiques REST
+
+Développement frontend réactif et responsive avec Angular 19
+
+Intégration continue, tests unitaires et gestion des versions
+
+Documentation complète et maintien du projet sur GitHub
+
+📅 Période du projet : Mai 2025
+🌐 Contact & suivi : Profil GitHub | LinkedIn 
+
+---
+
+## 📜 Licence
+
+MIT License © 2025 Quentin
+
+---
+
+> *Merci d’avoir consulté ce projet, bon développement !* 👨‍💻🔥
