@@ -15,40 +15,71 @@ import com.example.backendgroupsmaker.security.JwtAuthenticationFilter;
 import com.example.backendgroupsmaker.service.JwtService;
 import com.example.backendgroupsmaker.service.UtilisateurService;
 
-@Configuration
+@Configuration // Indique que cette classe contient une configuration Spring
 public class SecurityConfig {
 
-    // Bean pour encoder les mots de passe avec BCrypt
+    /**
+     * Bean qui permet d’encoder les mots de passe avec l’algorithme BCrypt.
+     * C’est une bonne pratique pour stocker les mots de passe de manière sécurisée.
+     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // Bean AuthenticationManager standard Spring
+    /**
+     * Bean pour fournir un `AuthenticationManager`, qui est responsable de l’authentification des utilisateurs.
+     * Utilisé lors de la connexion pour vérifier les identifiants.
+     */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 
-    // Bean JwtAuthenticationFilter avec injection explicite des dépendances
+    /**
+     * Bean personnalisé pour notre filtre JWT (authentification par token).
+     * On injecte ici notre service de JWT et notre service utilisateur.
+     */
     @Bean
-    public JwtAuthenticationFilter jwtAuthenticationFilter(JwtService jwtService, UtilisateurService utilisateurService) {
+    public JwtAuthenticationFilter jwtAuthenticationFilter(
+            JwtService jwtService,
+            UtilisateurService utilisateurService
+    ) {
         return new JwtAuthenticationFilter(jwtService, utilisateurService);
     }
 
-    // Configuration de la sécurité HTTP
+    /**
+     * Chaîne de sécurité principale :
+     * On y configure toutes les règles de sécurité de l’API.
+     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
                                            JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http
-            .csrf(csrf -> csrf.disable()) // Désactivation CSRF (API REST stateless)
+            // On désactive la protection CSRF (inutile ici car on a une API REST sans session)
+            .csrf(csrf -> csrf.disable())
+
+            // On configure les autorisations selon l’URL demandée
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()       // Accessible sans authentification
-                .requestMatchers("/api/admin/**").hasRole("ADMIN") // Accès réservé aux ADMIN
-                .anyRequest().authenticated()                       // Le reste nécessite authentification
+
+                // Les routes d’authentification (/api/auth/login, /api/auth/register...) sont publiques
+                .requestMatchers("/api/auth/**").permitAll()
+
+                // Les routes d’administration sont réservées aux utilisateurs avec le rôle ADMIN
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                // Toutes les autres routes API (comme /api/listes) sont accessibles uniquement si connecté avec le rôle USER
+                .requestMatchers("/api/**").hasRole("USER")
+
+                // Toute autre requête (non prévue ci-dessus) nécessite d’être authentifié
+                .anyRequest().authenticated()
             )
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Stateless
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // Filtre JWT avant l’authentification classique
+
+            // On indique à Spring de ne pas gérer de session HTTP (on est en mode stateless avec JWT)
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+            // On ajoute notre filtre JWT avant le filtre d’authentification standard de Spring
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
