@@ -51,14 +51,14 @@ L’API s’appuie sur un système d’authentification JWT et contrôle l’acc
 
 ```mermaid
 graph TD
-    A[Client] -->|Login (username + pwd)| B[AuthController]
-    B -->|Validate creds| C[UtilisateurService]
-    C -->|LoadUserByUsername| D[UtilisateurRepository]
-    B -->|Generate JWT| E[JwtService]
-    E -->|Token JWT| A
-    A -->|Requêtes API + Header Authorization: Bearer <token>| F[JwtAuthenticationFilter]
-    F -->|Validate token| G[SecurityContext]
-    G -->|Accès contrôlé| H[API protégée]
+    A[Client] -->|"Login (username + pwd)"| B[AuthController]
+    B -->|"Validate creds"| C[UtilisateurService]
+    C -->|"LoadUserByUsername"| D[UtilisateurRepository]
+    B -->|"Generate JWT"| E[JwtService]
+    E -->|"Token JWT"| A
+    A -->|"Requêtes API + Header Authorization: Bearer <token>"| F[JwtAuthenticationFilter]
+    F -->|"Validate token"| G[SecurityContext]
+    G -->|"Accès contrôlé"| H[API protégée]
 ```
 
 ### Sécurité HTTP
