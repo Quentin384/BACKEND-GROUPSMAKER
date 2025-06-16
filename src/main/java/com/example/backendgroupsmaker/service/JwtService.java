@@ -5,6 +5,7 @@ import java.util.Date;
 
 import org.springframework.stereotype.Service;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -24,47 +25,71 @@ public class JwtService {
     private final Key key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
 
     /**
-     * Génère un token JWT pour un utilisateur donné.
-     * Le token contient le nom d'utilisateur (subject), la date de création et la date d'expiration.
+     * Génère un token JWT pour un utilisateur donné avec son rôle.
+     * Le token contient le nom d'utilisateur (subject), le rôle (dans les claims),
+     * la date de création et la date d'expiration.
+     *
+     * @param username Nom d'utilisateur
+     * @param role     Rôle de l'utilisateur (ex : "ADMIN", "USER")
+     * @return         Le token JWT signé
      */
-    public String generateToken(String username) {
+    public String generateToken(String username, String role) {
         return Jwts.builder()
-                .setSubject(username)                 // Stocke le nom d'utilisateur dans le token
-                .setIssuedAt(new Date())             // Date de création du token
+                .setSubject(username)                    // Stocke le nom d'utilisateur dans le token
+                .claim("role", role)                     // Stocke le rôle dans les claims
+                .setIssuedAt(new Date())                 // Date de création du token
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME)) // Date d'expiration
-                .signWith(key, SignatureAlgorithm.HS256) // Signature avec la clé secrète et l'algorithme HS256
-                .compact();                         // Génère la chaîne de caractères finale du token
+                .signWith(key, SignatureAlgorithm.HS256) // Signature avec la clé secrète et l'algo HS256
+                .compact();                              // Génère la chaîne de caractères finale du token
     }
 
     /**
      * Extrait le nom d'utilisateur (subject) depuis un token JWT.
      * Si le token est invalide, une exception sera levée.
+     *
+     * @param token Token JWT
+     * @return Nom d'utilisateur contenu dans le token
      */
     public String extractUsername(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(key)               // Indique la clé pour vérifier la signature
-                .build()
-                .parseClaimsJws(token)            // Analyse et valide le token JWT
-                .getBody()
-                .getSubject();                    // Récupère le champ 'subject' (nom d'utilisateur)
+        return getClaims(token).getSubject();
     }
 
     /**
-     * Valide un token JWT.
-     * Vérifie la signature et la date d'expiration.
-     * Retourne true si le token est valide, false sinon.
+     * Extrait le rôle depuis un token JWT.
+     * 
+     * @param token Token JWT
+     * @return Rôle de l'utilisateur (ex : "ADMIN")
+     */
+    public String extractRole(String token) {
+        return getClaims(token).get("role", String.class);
+    }
+
+    /**
+     * Vérifie si un token est valide (signature et expiration).
+     *
+     * @param token Token JWT à valider
+     * @return true si le token est valide, false sinon
      */
     public boolean validateToken(String token) {
         try {
-            // Tente de parser le token. Si la signature est invalide ou expirée, une exception sera levée.
-            Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token);
-            return true; // Token valide
+            getClaims(token); // Tente de parser les claims (échec = token invalide)
+            return true;
         } catch (JwtException | IllegalArgumentException e) {
-            // Token invalide ou malformé
             return false;
         }
+    }
+
+    /**
+     * Méthode interne pour parser les claims du token.
+     *
+     * @param token Token JWT
+     * @return Claims extraits (username, rôle, dates, etc.)
+     */
+    private Claims getClaims(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(key) // Vérifie la signature
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
     }
 }

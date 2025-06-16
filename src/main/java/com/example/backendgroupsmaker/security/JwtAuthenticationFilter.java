@@ -1,32 +1,32 @@
 package com.example.backendgroupsmaker.security;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.example.backendgroupsmaker.service.JwtService;
-import com.example.backendgroupsmaker.service.UtilisateurService;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-// IMPORTANT : plus de @Component car on va gérer ce bean dans SecurityConfig
+/**
+ * Filtre JWT qui intercepte chaque requête pour valider le token
+ * et configurer le contexte de sécurité si le token est valide.
+ */
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-    private final UtilisateurService utilisateurService;
 
-    // Injection par constructeur, meilleure pratique pour les tests et la clarté
-    public JwtAuthenticationFilter(JwtService jwtService, UtilisateurService utilisateurService) {
+    public JwtAuthenticationFilter(JwtService jwtService) {
         this.jwtService = jwtService;
-        this.utilisateurService = utilisateurService;
     }
 
     @Override
@@ -39,42 +39,37 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String authHeader = request.getHeader("Authorization");
         String jwt = null;
         String username = null;
+        String role = null;
 
-        // Vérifie que le header Authorization commence par "Bearer "
+        // Vérifie que le header Authorization contient un Bearer token
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            // Extrait le token JWT (sans "Bearer ")
             jwt = authHeader.substring(7);
             try {
-                // Extrait le username depuis le token
                 username = jwtService.extractUsername(jwt);
+                role = jwtService.extractRole(jwt);
             } catch (Exception e) {
-                // Ici tu peux logger une erreur si le token est invalide ou malformé
+                // Token invalide ou erreur de parsing (aucune action, on continue)
             }
         }
 
-        // Si on a un username et que l'utilisateur n'est pas encore authentifié dans le contexte
+        // Si le token est valide et l'utilisateur non encore authentifié
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            // Charge les détails de l'utilisateur depuis la base (via UserDetailsService)
-            UserDetails userDetails = utilisateurService.loadUserByUsername(username);
-
-            // Vérifie que le token est valide (pas expiré, signature ok...)
             if (jwtService.validateToken(jwt)) {
-                // Crée un objet d'authentification Spring avec les droits de l'utilisateur
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null, // pas de mot de passe car déjà authentifié via token
-                                userDetails.getAuthorities());
+                // Création d’une autorité sans préfixe "ROLE_"
+                List<SimpleGrantedAuthority> authorities =
+                        List.of(new SimpleGrantedAuthority(role));
 
-                // Ajoute les détails de la requête courante à l'authentification
+                UsernamePasswordAuthenticationToken authToken =
+                        new UsernamePasswordAuthenticationToken(username, null, authorities);
+
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-                // Place cette authentification dans le contexte de sécurité
+                // Enregistrement de l'utilisateur dans le contexte Spring Security
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }
 
-        // Continue la chaîne de filtres
+        // Passage au filtre suivant
         filterChain.doFilter(request, response);
     }
 }

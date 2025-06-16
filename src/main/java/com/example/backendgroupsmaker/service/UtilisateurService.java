@@ -14,62 +14,54 @@ import com.example.backendgroupsmaker.model.Utilisateur;
 import com.example.backendgroupsmaker.repository.UtilisateurRepository;
 
 /**
- * Service chargé de gérer les utilisateurs et leur authentification.
- * Implémente UserDetailsService, ce qui permet à Spring Security
- * de charger un utilisateur depuis la base de données.
+ * Service responsable de la gestion des utilisateurs et de leur authentification.
  */
 @Service
 public class UtilisateurService implements UserDetailsService {
 
-    // Injecte automatiquement le repository pour accéder à la base de données
     @Autowired
     private UtilisateurRepository utilisateurRepository;
 
-    // Injecte automatiquement l'encodeur de mot de passe (BCrypt)
     @Autowired
     private PasswordEncoder passwordEncoder;
 
     /**
-     * Cette méthode est appelée automatiquement par Spring Security
-     * lorsqu'un utilisateur tente de se connecter.
-     *
-     * Elle cherche un utilisateur par son nom, et construit un objet
-     * UserDetails (utilisé pour la vérification des identifiants).
+     * Chargé automatiquement par Spring Security pour l'authentification.
+     * Retourne un UserDetails construit à partir du modèle Utilisateur.
      */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        // Cherche un utilisateur par son nom dans la base de données
         Utilisateur utilisateur = utilisateurRepository.findByUsername(username)
-            .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé : " + username));
+                .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé : " + username));
 
-        // Crée un objet que Spring Security peut utiliser pour l’authentification
+        // Ne pas préfixer avec "ROLE_"
         return new org.springframework.security.core.userdetails.User(
-            utilisateur.getUsername(),                    // nom d'utilisateur
-            utilisateur.getPassword(),                    // mot de passe encodé
-            List.of(new SimpleGrantedAuthority("ROLE_" + utilisateur.getRole())) // rôle avec préfixe ROLE_
+                utilisateur.getUsername(),
+                utilisateur.getPassword(),
+                List.of(new SimpleGrantedAuthority(utilisateur.getRole()))
         );
     }
 
     /**
-     * Inscrit un nouvel utilisateur dans la base de données.
-     * Le mot de passe est encodé pour des raisons de sécurité,
-     * et le rôle est défini par défaut à "USER".
-     *
-     * @param username Le nom d'utilisateur
-     * @param motDePasse Le mot de passe en clair (fourni par le client)
-     * @return L'objet Utilisateur sauvegardé
+     * Inscription d'un nouvel utilisateur avec un rôle facultatif.
+     * Si aucun rôle n'est fourni, "USER" est appliqué par défaut.
      */
-    public Utilisateur inscription(String username, String motDePasse) {
-        // Encodage du mot de passe avant sauvegarde (ex : BCrypt)
+    public Utilisateur inscription(String username, String motDePasse, String role) {
         String encodedPassword = passwordEncoder.encode(motDePasse);
 
-        // Création d’un nouvel objet utilisateur
         Utilisateur utilisateur = new Utilisateur();
         utilisateur.setUsername(username);
         utilisateur.setPassword(encodedPassword);
-        utilisateur.setRole("USER"); // Définir un rôle par défaut
+        utilisateur.setRole((role == null || role.isBlank()) ? "USER" : role.toUpperCase());
 
-        // Sauvegarde dans la base de données via le repository
         return utilisateurRepository.save(utilisateur);
+    }
+
+    /**
+     * Méthode utilitaire pour récupérer un utilisateur complet (avec rôle) à partir de son username.
+     */
+    public Utilisateur getUtilisateurByUsername(String username) {
+        return utilisateurRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé : " + username));
     }
 }
