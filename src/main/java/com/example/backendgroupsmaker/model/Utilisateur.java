@@ -2,6 +2,8 @@ package com.example.backendgroupsmaker.model;
 
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -23,12 +25,14 @@ public class Utilisateur {
     @Column(nullable = false, unique = true)
     private String username;
 
+    @JsonIgnore // ⛔ Ne jamais exposer le mot de passe
     @Column(nullable = false)
     private String password;
 
     @Column(nullable = false)
     private String role = "USER";
 
+    @JsonIgnore // ❌ Ne pas exposer les listes dans /signup ou /login
     @OneToMany(mappedBy = "utilisateur", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<Liste> listes;
 
@@ -42,7 +46,6 @@ public class Utilisateur {
     }
 
     // Getters et setters
-
     public Long getId() {
         return id;
     }

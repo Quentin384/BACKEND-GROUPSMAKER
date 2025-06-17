@@ -43,7 +43,9 @@ public class AuthController {
             request.getPassword(),
             request.getRole()
         );
-        return ResponseEntity.ok("Utilisateur créé : " + utilisateur.getUsername());
+    
+
+        return ResponseEntity.ok(utilisateur);
     }
 
     /**
