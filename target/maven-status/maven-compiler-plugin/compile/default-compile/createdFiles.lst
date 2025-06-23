@@ -1,6 +1,7 @@
 com\example\backendgroupsmaker\service\PersonneService.class
 com\example\backendgroupsmaker\service\UtilisateurService.class
 com\example\backendgroupsmaker\model\Utilisateur.class
+com\example\backendgroupsmaker\model\Genre.class
 com\example\backendgroupsmaker\service\AdminService.class
 com\example\backendgroupsmaker\repository\UtilisateurRepository.class
 com\example\backendgroupsmaker\BackendgroupsmakerApplication.class
@@ -11,6 +12,7 @@ com\example\backendgroupsmaker\service\JwtService.class
 com\example\backendgroupsmaker\model\Personne.class
 com\example\backendgroupsmaker\controller\AdminController.class
 com\example\backendgroupsmaker\controller\AuthController.class
+com\example\backendgroupsmaker\model\Profil.class
 com\example\backendgroupsmaker\service\ListeService.class
 com\example\backendgroupsmaker\controller\AuthRequest.class
 com\example\backendgroupsmaker\controller\ApiController.class

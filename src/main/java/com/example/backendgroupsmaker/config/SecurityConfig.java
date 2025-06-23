@@ -74,6 +74,7 @@ public class SecurityConfig {
           // Filtre JWT
           .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
+        System.out.println("✅ SecurityFilterChain initialisée, jwtFilter ajouté AVANT UsernamePasswordAuthenticationFilter !");  
         return http.build();
     }
 

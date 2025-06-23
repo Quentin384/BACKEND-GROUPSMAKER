@@ -22,6 +22,8 @@ import com.example.backendgroupsmaker.repository.PersonneRepository;
 import com.example.backendgroupsmaker.repository.TirageRepository;
 import com.example.backendgroupsmaker.repository.UtilisateurRepository;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api")
 public class ApiController {
@@ -41,21 +43,24 @@ public class ApiController {
     @GetMapping("/listes")
     public List<Liste> getListes(Principal principal) {
         Utilisateur user = utilisateurRepo.findByUsername(principal.getName())
-            .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
         return listeRepo.findByUtilisateurId(user.getId());
     }
 
     @PostMapping("/listes")
     public ResponseEntity<Liste> createListe(Principal principal, @RequestBody Liste liste) {
         Utilisateur utilisateur = utilisateurRepo.findByUsername(principal.getName())
-            .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
         liste.setUtilisateur(utilisateur);
         Liste saved = listeRepo.save(liste);
         return ResponseEntity.ok(saved);
     }
 
     @PostMapping("/listes/{idListe}/personnes")
-    public ResponseEntity<?> addPersonne(Principal principal, @PathVariable Long idListe, @RequestBody Personne p) {
+    public ResponseEntity<?> addPersonne(
+            Principal principal,
+            @PathVariable Long idListe,
+            @RequestBody @Valid Personne p) {
         Liste liste = listeRepo.findById(idListe).orElse(null);
         if (liste == null || !liste.getUtilisateur().getUsername().equals(principal.getName())) {
             return ResponseEntity.status(403).build();
@@ -90,6 +95,7 @@ public class ApiController {
     public ResponseEntity<List<Tirage>> getTirages(Principal principal, @PathVariable Long idListe) {
         Liste liste = listeRepo.findById(idListe).orElse(null);
         if (liste == null || !liste.getUtilisateur().getUsername().equals(principal.getName())) {
+            System.out.println("[DEBUG] Echec ajout personne: principal=" + principal.getName() + ", user liste=" + (liste==null?"null":liste.getUtilisateur().getUsername()));
             return ResponseEntity.status(403).build();
         }
         return ResponseEntity.ok(tirageRepo.findByListeId(idListe));
