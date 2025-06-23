@@ -1,22 +1,18 @@
 package com.example.backendgroupsmaker.model;
 
-import java.util.Date;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import jakarta.persistence.Temporal;
-import jakarta.persistence.TemporalType;
+import jakarta.persistence.*;
+import java.util.Date;
+import java.util.List;
 
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+/**
+ * Un tirage : on stocke en base le JSON brut,
+ * et on le (dé)sérialise nous-mêmes.
+ */
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 @Entity
 @Table(name = "tirage")
 public class Tirage {
@@ -36,48 +32,71 @@ public class Tirage {
     @Column(nullable = false)
     private boolean valide;
 
+    /** Le JSONB tel que stocké en base */
     @Column(name = "groupes_json", columnDefinition = "jsonb", nullable = false)
     private String groupesJson;
 
-    // --- Getters & Setters ---
+    /** En mémoire : votre vraie liste de groupes */
+    @Transient
+    private List<Groupe> groupes;
 
-    public Long getId() {
-        return id;
-    }
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public Tirage() { }
 
-    public Liste getListe() {
-        return liste;
-    }
-
-    public void setListe(Liste liste) {
+    public Tirage(Liste liste, Date date, boolean valide, List<Groupe> groupes) {
         this.liste = liste;
-    }
-
-    public Date getDate() {
-        return date;
-    }
-
-    public void setDate(Date date) {
         this.date = date;
-    }
-
-    public boolean isValide() {
-        return valide;
-    }
-
-    public void setValide(boolean valide) {
         this.valide = valide;
+        setGroupes(groupes);
     }
 
-    public String getGroupesJson() {
-        return groupesJson;
+    /** Après chargement JPA, on désérialise */
+    @PostLoad
+    private void onLoad() {
+        try {
+            this.groupes = MAPPER.readValue(
+                this.groupesJson,
+                new TypeReference<List<Groupe>>() {}
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur désérialisation JSON de Tirage", e);
+        }
     }
 
-    public void setGroupesJson(String groupesJson) {
-        this.groupesJson = groupesJson;
+    /** Avant insert/update, on sérialise */
+    @PrePersist @PreUpdate
+    private void onSave() {
+        try {
+            this.groupesJson = MAPPER.writeValueAsString(this.groupes);
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur sérialisation JSON de Tirage", e);
+        }
+    }
+
+    // --- getters / setters ---
+
+    public Long getId() { return id; }
+
+    public Liste getListe() { return liste; }
+    public void setListe(Liste liste) { this.liste = liste; }
+
+    public Date getDate() { return date; }
+    public void setDate(Date date) { this.date = date; }
+
+    public boolean isValide() { return valide; }
+    public void setValide(boolean valide) { this.valide = valide; }
+
+    public String getGroupesJson() { return groupesJson; }
+    public void setGroupesJson(String groupesJson) { this.groupesJson = groupesJson; }
+
+    public List<Groupe> getGroupes() { return groupes; }
+    public void setGroupes(List<Groupe> groupes) {
+        this.groupes = groupes;
+        try {
+            this.groupesJson = MAPPER.writeValueAsString(groupes);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }
