@@ -1,0 +1,55 @@
+# === Maven ===
+/target/
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/timing.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+release.properties
+
+# === IntelliJ IDEA ===
+.idea/
+*.iml
+*.iws
+out/
+
+# === Eclipse ===
+.project
+.classpath
+.settings/
+bin/
+
+# === VS Code ===
+.vscode/
+
+# === OS files ===
+.DS_Store
+Thumbs.db
+
+# === Logs ===
+*.log
+
+# === Compiled class files ===
+*.class
+
+# === Packaging ===
+*.jar
+*.war
+*.ear
+
+# === Backup & temp ===
+*~ 
+*.swp
+*.bak
+*.tmp
+
+# === Environment / dotenv ===
+.env
+.env.*
+
+# === Coverage & Reports ===
+/coverage/
+/jacoco.exec
+/target/site/
+
+# === Local configuration files ===
+/local.properties
