@@ -1,8 +1,11 @@
 package com.example.backendgroupsmaker.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -16,7 +19,6 @@ import java.util.List;
  */
 @Entity
 @Table(name = "tirage")
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Tirage {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -27,34 +29,44 @@ public class Tirage {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "liste_id", nullable = false)
+    @JsonIgnore
     private Liste liste;
 
     @Temporal(TemporalType.TIMESTAMP)
-    @Column(name = "date", nullable = false)
+    @Column(nullable = false)
     private Date date;
 
-    @Column(name = "valide", nullable = false)
-    private boolean valide = false;
+    @Column(nullable = false)
+    private boolean valide;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "groupes_json", columnDefinition = "jsonb", nullable = false)
+    @JsonIgnore
     private String groupesJson;
 
+    /** Champ exposé en JSON, injecté par Jackson au POST */
     @Transient
+    @JsonProperty("groupes")
     private List<Groupe> groupes;
 
-    // --- Constructeurs ---
-
     public Tirage() {
+        // pour JPA
     }
 
-    public Tirage(Liste liste, Date date, List<Groupe> groupes) {
-        this.liste = liste;
-        this.date = date;
+    /**
+     * Pour Jackson : binder groupes, date et valide depuis le JSON.
+     * Nécessite l'import de @JsonCreator.
+     */
+    @JsonCreator
+    public Tirage(
+        @JsonProperty("groupes") List<Groupe> groupes,
+        @JsonProperty("date") Date date,
+        @JsonProperty("valide") boolean valide
+    ) {
         this.groupes = groupes;
+        this.date = date;
+        this.valide = valide;
     }
-
-    // --- Callbacks JPA ---
 
     @PostLoad
     private void onLoad() {
@@ -68,8 +80,7 @@ public class Tirage {
         }
     }
 
-    @PrePersist
-    @PreUpdate
+    @PrePersist @PreUpdate
     private void onSave() {
         try {
             this.groupesJson = MAPPER.writeValueAsString(this.groupes);
@@ -80,49 +91,19 @@ public class Tirage {
 
     // --- Getters & Setters ---
 
-    public Long getId() {
-        return id;
-    }
+    public Long getId() { return id; }
 
-    public Liste getListe() {
-        return liste;
-    }
+    public Liste getListe() { return liste; }
+    public void setListe(Liste liste) { this.liste = liste; }
 
-    public void setListe(Liste liste) {
-        this.liste = liste;
-    }
+    public Date getDate() { return date; }
+    public void setDate(Date date) { this.date = date; }
 
-    public Date getDate() {
-        return date;
-    }
+    public boolean isValide() { return valide; }
+    public void setValide(boolean valide) { this.valide = valide; }
 
-    public void setDate(Date date) {
-        this.date = date;
-    }
-
-    public boolean isValide() {
-        return valide;
-    }
-
-    public void setValide(boolean valide) {
-        this.valide = valide;
-    }
-
-    public String getGroupesJson() {
-        return groupesJson;
-    }
-
-    public void setGroupesJson(String groupesJson) {
-        this.groupesJson = groupesJson;
-    }
-
-    public List<Groupe> getGroupes() {
-        return groupes;
-    }
-
-    public void setGroupes(List<Groupe> groupes) {
-        this.groupes = groupes;
-    }
+    public List<Groupe> getGroupes() { return groupes; }
+    public void setGroupes(List<Groupe> groupes) { this.groupes = groupes; }
 
     @Override
     public String toString() {
@@ -130,8 +111,7 @@ public class Tirage {
                "id=" + id +
                ", date=" + date +
                ", valide=" + valide +
-               ", listeId=" + (liste != null ? liste.getId() : null) +
-               ", groupesJson='" + groupesJson + '\'' +
+               ", groupes=" + groupes +
                '}';
     }
 }

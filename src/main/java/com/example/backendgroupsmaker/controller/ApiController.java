@@ -18,20 +18,28 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.example.backendgroupsmaker.model.Liste;
+import com.example.backendgroupsmaker.model.Personne;
 import com.example.backendgroupsmaker.model.Tirage;
 import com.example.backendgroupsmaker.model.Utilisateur;
 import com.example.backendgroupsmaker.repository.ListeRepository;
+import com.example.backendgroupsmaker.repository.PersonneRepository;
 import com.example.backendgroupsmaker.repository.TirageRepository;
 import com.example.backendgroupsmaker.repository.UtilisateurRepository;
 
 import jakarta.validation.Valid;
 
+/**
+ * Contrôleur exposant les API de gestion des listes, personnes et tirages.
+ */
 @RestController
 @RequestMapping("/api")
 public class ApiController {
 
     @Autowired
     private ListeRepository listeRepo;
+
+    @Autowired
+    private PersonneRepository personneRepo;
 
     @Autowired
     private TirageRepository tirageRepo;
@@ -42,7 +50,9 @@ public class ApiController {
     @GetMapping("/listes")
     public List<Liste> getListes(Principal principal) {
         Utilisateur current = getCurrentUser(principal);
-        return listeRepo.findByUtilisateurId(current.getId());
+        List<Liste> listes = listeRepo.findByUtilisateurId(current.getId());
+        System.out.println("▶▶ getListes user=" + current.getUsername() + " -> " + listes.size() + " listes");
+        return listes;
     }
 
     @PostMapping("/listes")
@@ -51,6 +61,7 @@ public class ApiController {
         Utilisateur current = getCurrentUser(principal);
         liste.setUtilisateur(current);
         Liste saved = listeRepo.save(liste);
+        System.out.println("▶▶ createListe created id=" + saved.getId());
         return ResponseEntity.ok(saved);
     }
 
@@ -59,58 +70,78 @@ public class ApiController {
                                             @PathVariable Long idListe) {
         Liste liste = getOwnedListe(idListe, getCurrentUser(principal));
         listeRepo.delete(liste);
+        System.out.println("▶▶ deleteListe id=" + idListe);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/listes/{idListe}/personnes")
+    public ResponseEntity<List<Personne>> getPersonnes(Principal principal,
+                                                       @PathVariable Long idListe) {
+        getOwnedListe(idListe, getCurrentUser(principal));
+        List<Personne> personnes = personneRepo.findByListeId(idListe);
+        System.out.println("▶▶ getPersonnes for liste=" + idListe + " -> " + personnes.size() + " personnes");
+        return ResponseEntity.ok(personnes);
+    }
+
+    @PostMapping("/listes/{idListe}/personnes")
+    public ResponseEntity<Personne> addPersonne(Principal principal,
+                                                @PathVariable Long idListe,
+                                                @RequestBody @Valid Personne personne) {
+        Liste liste = getOwnedListe(idListe, getCurrentUser(principal));
+        personne.setListe(liste);
+        Personne saved = personneRepo.save(personne);
+        System.out.println("▶▶ addPersonne name=" + saved.getNom() + " to liste=" + idListe);
+        return ResponseEntity.ok(saved);
     }
 
     @PostMapping("/listes/{idListe}/tirages")
     public ResponseEntity<Tirage> addTirage(Principal principal,
                                             @PathVariable Long idListe,
                                             @RequestBody @Valid Tirage tirage) {
+        System.out.println("▶▶ addTirage called for liste=" + idListe + ", groupes=" + tirage.getGroupes());
         Utilisateur current = getCurrentUser(principal);
         Liste liste = getOwnedListe(idListe, current);
 
         if (tirage.getGroupes() == null || tirage.getGroupes().isEmpty()) {
+            System.out.println("⚠ addTirage: no groupes in payload");
             return ResponseEntity.badRequest().build();
         }
 
         tirage.setListe(liste);
         tirage.setDate(new Date());
-        // Sérialisation JSON gérée par @PrePersist/@PreUpdate de l'entité Tirage
-
         Tirage saved = tirageRepo.save(tirage);
+        System.out.println("▶▶ addTirage saved id=" + saved.getId());
 
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                           .path("/{id}")
                           .buildAndExpand(saved.getId())
                           .toUri();
-
-        return ResponseEntity.created(location)
-                             .body(saved);
+        return ResponseEntity.created(location).body(saved);
     }
 
     @GetMapping("/listes/{idListe}/tirages")
     public ResponseEntity<List<Tirage>> getTirages(Principal principal,
                                                    @PathVariable Long idListe) {
-        Liste liste = getOwnedListe(idListe, getCurrentUser(principal));
-        return ResponseEntity.ok(tirageRepo.findByListeId(idListe));
+        getOwnedListe(idListe, getCurrentUser(principal));
+        List<Tirage> tirages = tirageRepo.findByListeId(idListe);
+        System.out.println("▶▶ getTirages for liste=" + idListe + " -> " + tirages.size() + " tirages");
+        return ResponseEntity.ok(tirages);
     }
 
     @PatchMapping("/listes/{idListe}/tirages/{tirageId}")
     public ResponseEntity<Tirage> validerTirage(Principal principal,
                                                 @PathVariable Long idListe,
                                                 @PathVariable Long tirageId) {
-        Utilisateur current = getCurrentUser(principal);
-        getOwnedListe(idListe, current);  // vérifie l’appartenance
-
+        getOwnedListe(idListe, getCurrentUser(principal));
         Tirage tirage = tirageRepo.findById(tirageId)
             .orElseThrow(() -> new RuntimeException("Tirage non trouvé : " + tirageId));
-
         tirage.setValide(true);
         Tirage updated = tirageRepo.save(tirage);
+        System.out.println("▶▶ validerTirage id=" + tirageId);
         return ResponseEntity.ok(updated);
     }
 
-    // --- méthodes utilitaires ---
+    // --- méthodes utilitaires internes ---
 
     private Utilisateur getCurrentUser(Principal principal) {
         return utilisateurRepo.findByUsername(principal.getName())
