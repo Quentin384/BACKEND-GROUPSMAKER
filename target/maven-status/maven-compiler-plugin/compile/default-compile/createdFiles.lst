@@ -8,7 +8,6 @@ com\example\backendgroupsmaker\controller\AdminController.class
 com\example\backendgroupsmaker\controller\AuthController.class
 com\example\backendgroupsmaker\service\ListeService.class
 com\example\backendgroupsmaker\controller\AuthRequest.class
-com\example\backendgroupsmaker\controller\ApiController.class
 com\example\backendgroupsmaker\repository\TirageRepository.class
 com\example\backendgroupsmaker\security\JwtAuthenticationFilter.class
 com\example\backendgroupsmaker\repository\PersonneRepository.class
