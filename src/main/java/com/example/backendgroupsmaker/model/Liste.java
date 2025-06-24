@@ -1,4 +1,5 @@
 package com.example.backendgroupsmaker.model;
+
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -15,6 +16,9 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
+/**
+ * Représente une liste de personnes et ses tirages associés.
+ */
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
 @Table(name = "liste")
@@ -27,71 +31,57 @@ public class Liste {
     @Column(nullable = false)
     private String nom;
 
-    // Nombre de tirages (groupes) réalisés dans cette liste
+    /** Nombre de tirages réalisés */
     @Column(nullable = false)
     private int tirages = 0;
 
-    // Association vers l'utilisateur propriétaire de la liste (relation ManyToOne)
+    /** Utilisateur propriétaire */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "utilisateur_id")
+    @JoinColumn(name = "utilisateur_id", nullable = false)
     private Utilisateur utilisateur;
 
-    // Liste des personnes associées à cette liste (relation OneToMany)
-    @OneToMany(mappedBy = "liste", cascade = CascadeType.ALL, orphanRemoval = true)
+    /** Personnes associées */
+    @OneToMany(
+        mappedBy = "liste",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true,
+        fetch = FetchType.LAZY
+    )
     private List<Personne> personnes;
 
-    // Nouveau champ indiquant si la liste est partagée ou non
-    // false par défaut
+    /** Tirages enregistrés */
+    @OneToMany(
+        mappedBy = "liste",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true,
+        fetch = FetchType.LAZY
+    )
+    private List<Tirage> tiragesHistorique;
+
+    /** Indique si la liste est partagée */
     @Column(nullable = false)
     private boolean partagee = false;
 
-    // Getters et setters
+    // --- Getters & Setters ---
 
-    public Long getId() {
-        return id;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public String getNom() { return nom; }
+    public void setNom(String nom) { this.nom = nom; }
 
-    public String getNom() {
-        return nom;
-    }
+    public int getTirages() { return tirages; }
+    public void setTirages(int tirages) { this.tirages = tirages; }
 
-    public void setNom(String nom) {
-        this.nom = nom;
-    }
+    public Utilisateur getUtilisateur() { return utilisateur; }
+    public void setUtilisateur(Utilisateur utilisateur) { this.utilisateur = utilisateur; }
 
-    public int getTirages() {
-        return tirages;
-    }
+    public List<Personne> getPersonnes() { return personnes; }
+    public void setPersonnes(List<Personne> personnes) { this.personnes = personnes; }
 
-    public void setTirages(int tirages) {
-        this.tirages = tirages;
-    }
+    public List<Tirage> getTiragesHistorique() { return tiragesHistorique; }
+    public void setTiragesHistorique(List<Tirage> tiragesHistorique) { this.tiragesHistorique = tiragesHistorique; }
 
-    public Utilisateur getUtilisateur() {
-        return utilisateur;
-    }
-
-    public void setUtilisateur(Utilisateur utilisateur) {
-        this.utilisateur = utilisateur;
-    }
-
-    public List<Personne> getPersonnes() {
-        return personnes;
-    }
-
-    public void setPersonnes(List<Personne> personnes) {
-        this.personnes = personnes;
-    }
-
-    public boolean isPartagee() {
-        return partagee;
-    }
-
-    public void setPartagee(boolean partagee) {
-        this.partagee = partagee;
-    }
+    public boolean isPartagee() { return partagee; }
+    public void setPartagee(boolean partagee) { this.partagee = partagee; }
 }

@@ -1,5 +1,6 @@
 package com.example.backendgroupsmaker.controller;
 
+import java.net.URI;
 import java.security.Principal;
 import java.util.Date;
 import java.util.List;
@@ -14,16 +15,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.example.backendgroupsmaker.model.Liste;
-import com.example.backendgroupsmaker.model.Personne;
 import com.example.backendgroupsmaker.model.Tirage;
 import com.example.backendgroupsmaker.model.Utilisateur;
 import com.example.backendgroupsmaker.repository.ListeRepository;
-import com.example.backendgroupsmaker.repository.PersonneRepository;
 import com.example.backendgroupsmaker.repository.TirageRepository;
 import com.example.backendgroupsmaker.repository.UtilisateurRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.validation.Valid;
 
@@ -33,9 +32,6 @@ public class ApiController {
 
     @Autowired
     private ListeRepository listeRepo;
-
-    @Autowired
-    private PersonneRepository personneRepo;
 
     @Autowired
     private TirageRepository tirageRepo;
@@ -50,95 +46,82 @@ public class ApiController {
     }
 
     @PostMapping("/listes")
-    public ResponseEntity<Liste> createListe(Principal principal, @RequestBody @Valid Liste liste) {
+    public ResponseEntity<Liste> createListe(Principal principal,
+                                             @RequestBody @Valid Liste liste) {
         Utilisateur current = getCurrentUser(principal);
         liste.setUtilisateur(current);
-        return ResponseEntity.ok(listeRepo.save(liste));
+        Liste saved = listeRepo.save(liste);
+        return ResponseEntity.ok(saved);
     }
 
     @DeleteMapping("/listes/{idListe}")
-    public ResponseEntity<Void> deleteListe(Principal principal, @PathVariable Long idListe) {
-        Utilisateur current = getCurrentUser(principal);
-        Liste liste = getOwnedListe(idListe, current);
+    public ResponseEntity<Void> deleteListe(Principal principal,
+                                            @PathVariable Long idListe) {
+        Liste liste = getOwnedListe(idListe, getCurrentUser(principal));
         listeRepo.delete(liste);
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/listes/{idListe}/personnes")
-    public ResponseEntity<Personne> addPersonne(Principal principal, @PathVariable Long idListe, @RequestBody @Valid Personne p) {
-        Liste liste = getOwnedListe(idListe, getCurrentUser(principal));
-        p.setListe(liste);
-        return ResponseEntity.ok(personneRepo.save(p));
-    }
-
-    @GetMapping("/listes/{idListe}/personnes")
-    public ResponseEntity<List<Personne>> getPersonnes(Principal principal, @PathVariable Long idListe) {
-        Liste liste = getOwnedListe(idListe, getCurrentUser(principal));
-        return ResponseEntity.ok(personneRepo.findByListeId(idListe));
-    }
-
-    /** ✅ Route correcte pour enregistrer un tirage */
     @PostMapping("/listes/{idListe}/tirages")
-    public ResponseEntity<?> addTirage(
-            Principal principal,
-            @PathVariable Long idListe,
-            @RequestBody Tirage tirage
-    ) {
+    public ResponseEntity<Tirage> addTirage(Principal principal,
+                                            @PathVariable Long idListe,
+                                            @RequestBody @Valid Tirage tirage) {
         Utilisateur current = getCurrentUser(principal);
         Liste liste = getOwnedListe(idListe, current);
 
-        // Vérifie que les groupes sont bien présents
         if (tirage.getGroupes() == null || tirage.getGroupes().isEmpty()) {
-            return ResponseEntity.badRequest().body("Le tirage ne contient aucun groupe");
+            return ResponseEntity.badRequest().build();
         }
 
-        // Liaison à la liste
         tirage.setListe(liste);
         tirage.setDate(new Date());
+        // Sérialisation JSON gérée par @PrePersist/@PreUpdate de l'entité Tirage
 
-        // Forcer la sérialisation du JSON
-        try {
-            String json = new ObjectMapper().writeValueAsString(tirage.getGroupes());
-            tirage.setGroupesJson(json);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Erreur de sérialisation JSON");
-        }
+        Tirage saved = tirageRepo.save(tirage);
 
-        tirageRepo.save(tirage);
-        return ResponseEntity.ok("Tirage enregistré avec succès");
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                          .path("/{id}")
+                          .buildAndExpand(saved.getId())
+                          .toUri();
+
+        return ResponseEntity.created(location)
+                             .body(saved);
     }
 
     @GetMapping("/listes/{idListe}/tirages")
-    public ResponseEntity<List<Tirage>> getTirages(Principal principal, @PathVariable Long idListe) {
+    public ResponseEntity<List<Tirage>> getTirages(Principal principal,
+                                                   @PathVariable Long idListe) {
         Liste liste = getOwnedListe(idListe, getCurrentUser(principal));
         return ResponseEntity.ok(tirageRepo.findByListeId(idListe));
     }
 
     @PatchMapping("/listes/{idListe}/tirages/{tirageId}")
-    public ResponseEntity<Tirage> validerTirage(Principal principal, @PathVariable Long idListe, @PathVariable Long tirageId) {
+    public ResponseEntity<Tirage> validerTirage(Principal principal,
+                                                @PathVariable Long idListe,
+                                                @PathVariable Long tirageId) {
         Utilisateur current = getCurrentUser(principal);
-        Liste liste = getOwnedListe(idListe, current);
-        Tirage tirage = tirageRepo.findById(tirageId)
-                .orElseThrow(() -> new RuntimeException("Tirage non trouvé : " + tirageId));
+        getOwnedListe(idListe, current);  // vérifie l’appartenance
 
-        if (!tirage.getListe().getId().equals(idListe)) {
-            return ResponseEntity.badRequest().build();
-        }
+        Tirage tirage = tirageRepo.findById(tirageId)
+            .orElseThrow(() -> new RuntimeException("Tirage non trouvé : " + tirageId));
 
         tirage.setValide(true);
-        return ResponseEntity.ok(tirageRepo.save(tirage));
+        Tirage updated = tirageRepo.save(tirage);
+        return ResponseEntity.ok(updated);
     }
 
-    // -- Méthodes utilitaires internes --
+    // --- méthodes utilitaires ---
 
     private Utilisateur getCurrentUser(Principal principal) {
         return utilisateurRepo.findByUsername(principal.getName())
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé : " + principal.getName()));
+                .orElseThrow(() -> new RuntimeException(
+                    "Utilisateur non trouvé : " + principal.getName()));
     }
 
     private Liste getOwnedListe(Long idListe, Utilisateur current) {
         Liste liste = listeRepo.findById(idListe)
-                .orElseThrow(() -> new RuntimeException("Liste non trouvée : " + idListe));
+                .orElseThrow(() -> new RuntimeException(
+                    "Liste non trouvée : " + idListe));
         if (!liste.getUtilisateur().getId().equals(current.getId())) {
             throw new RuntimeException("Accès refusé à la liste");
         }
